@@ -49,15 +49,8 @@ app.post("/api/shorturl/", function (req, res) {
   }
 
   Url.findOne({ url: original_url })
-    .then((data) => {
-      if (data) {
-        original_url = data.url;
-        shortUrl = data.shortUrl;
-        res.json({ original_url: original_url, short_url: shortUrl });
-      }
-    })
-    .catch((err) => {
-      if (err) {
+    .then((data, err) => {
+      if (data === null) {
         parsed_url = new URL(original_url).hostname;
 
         dns.lookup(parsed_url, (err) => {
@@ -73,6 +66,16 @@ app.post("/api/shorturl/", function (req, res) {
             data.save();
           }
         });
+      }
+      if (data) {
+        original_url = data.url;
+        shortUrl = data.shortUrl;
+        res.json({ original_url: original_url, short_url: shortUrl });
+      }
+    })
+    .catch((err) => {
+      if (err) {
+        res.json({ error: "invalid url" });
       }
     });
 });

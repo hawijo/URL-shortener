@@ -37,8 +37,7 @@ app.get("/api/hello", function (req, res) {
   res.json({ greeting: "hello API" });
 });
 
-app.post("/api/shorturl", function (req, res) {
-  // Check if the URL is valid
+app.post("/api/shorturl/", function (req, res) {
   original_url = req.body.url;
 
   if (
@@ -49,33 +48,48 @@ app.post("/api/shorturl", function (req, res) {
     return;
   }
 
-  parsed_url = new URL(original_url).hostname;
+  Url.findOne({ url: original_url })
+    .then((data) => {
+      if (data) {
+        original_url = data.url;
+        shortUrl = data.shortUrl;
+        res.json({ original_url: original_url, short_url: shortUrl });
+      }
+    })
+    .catch((err) => {
+      if (err) {
+        parsed_url = new URL(original_url).hostname;
 
-  dns.lookup(parsed_url, (err) => {
-    if (err) {
-      res.json({ error: "invalid url" });
-    } else {
-      short_url = Math.floor(Math.random() * 1000000);
-      res.json({ original_url: original_url, short_url: short_url });
-      var data = new Url({
-        url: original_url,
-        shortUrl: short_url,
-      });
-      data.save();
-    }
-  });
+        dns.lookup(parsed_url, (err) => {
+          if (err) {
+            res.json({ error: "invalid url" });
+          } else {
+            short_url = Math.floor(Math.random() * 1000000);
+            res.json({ original_url: original_url, short_url: short_url });
+            var data = new Url({
+              url: original_url,
+              shortUrl: short_url,
+            });
+            data.save();
+          }
+        });
+      }
+    });
 });
 
-app.post("/api/shorturl/:shorturl", function (req, res) {
-  var short_url = req.params.shorturl;
-  Url.findOne({ shortUrl: short_url }, function (err, data) {
-    if (err) return console.error(err);
-    if (data) {
-      res.redirect(data.url);
-    } else {
-      res.json({ error: "No short URL found for the given input" });
-    }
-  });
+app.get("/api/shorturl/:shortUrl", function (req, res) {
+  shortUrl = req.params.shortUrl;
+  Url.findOne({ shortUrl: shortUrl })
+    .then((data) => {
+      if (data) {
+        res.redirect(data.url);
+      }
+    })
+    .catch((err) => {
+      if (err) {
+        res.json({ error: "invalid url" });
+      }
+    });
 });
 
 app.listen(port, function () {
